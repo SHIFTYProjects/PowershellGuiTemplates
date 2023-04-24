@@ -1,0 +1,90 @@
+##Powershell Ping Tool Template##
+
+[void] [System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms")
+[void] [System.Reflection.Assembly]::LoadWithPartialName("System.Drawing")
+
+# form specs
+$objForm = New-Object System.Windows.Forms.Form
+$objForm.Text = "Ping Tool"
+$objForm.Size = New-Object System.Drawing.Size(300,170)
+$objForm.StartPosition = "CenterScreen"
+$objForm.KeyPreview = $True
+$objForm.MaximumSize = $objForm.Size
+$objForm.MinimumSize = $objForm.Size
+
+# form icon  
+$objForm.BackgroundImage = $objImage
+$objForm.BackgroundImageLayout = "None"
+# None, Tile, Center, Stretch, Zoom
+
+$objForm.Width = $objImage.Width
+$objForm.Height = $objImage.Height 
+
+# label
+$objLabel = New-Object System.Windows.Forms.label
+$objLabel.Location = New-Object System.Drawing.Size(7,10)
+$objLabel.Size = New-Object System.Drawing.Size(130,15)
+$objLabel.BackColor = "Transparent"
+$objLabel.ForeColor = "blue"
+$objLabel.Text = "Enter Computer Name"
+$objForm.Controls.Add($objLabel)
+
+# input box
+$objTextbox = New-Object System.Windows.Forms.TextBox
+$objTextbox.Location = New-Object System.Drawing.Size(10,45)
+$objTextbox.Size = New-Object System.Drawing.Size(120,20)
+$objForm.Controls.Add($objTextbox)
+
+# ok button
+$objButton = New-Object System.Windows.Forms.Button
+$objButton.Location = New-Object System.Drawing.Size(140,44)
+$objButton.Size = New-Object System.Drawing.Size(75,23)
+$objButton.Text = "OK"
+$objButton.Add_Click($button_click)
+$objForm.Controls.Add($objButton)
+
+# return status
+$returnStatus = New-Object System.Windows.Forms.label
+$returnStatus.Location = New-Object System.Drawing.Size(8,70)
+$returnStatus.Size = New-Object System.Drawing.Size(130,30)
+$returnStatus.BackColor = "Transparent"
+$returnStatus.Text = ""
+$objForm.Controls.Add($returnStatus)
+
+# action item here 
+$button_click =
+{  
+$returnStatus.Text = ""  
+$objStatusBar.Text = "Checking status..."
+$computerName = $objTextbox.Text
+
+# output - online  
+if (Test-Connection $computerName -quiet -Count 2){
+Write-Host -ForegroundColor Green "$computerName is online"
+$returnStatus.BackColor = "Transparent"
+$returnStatus.ForeColor = "lime"
+$returnStatus.Text = "Status: Online"
+}
+Else{
+# output - offline
+Write-Host -ForegroundColor Red "$computerName is offline"
+$returnStatus.ForeColor= "Red"
+$returnStatus.Text = "Status: Offline"
+}   
+$objStatusBar.Text = "Done" 
+}  
+
+# form status bar  
+$objStatusBar = New-Object System.Windows.Forms.StatusBar
+$objStatusBar.Name = "statusBar"
+$objStatusBar.Text = "Ready"
+$objForm.Controls.Add($objStatusBar)
+
+$objForm.Add_KeyDown({if ($_.KeyCode -eq "Enter"){& $button_click}})
+$objForm.Add_KeyDown({if ($_.KeyCode -eq "Escape")
+{$objForm.Close()}})
+
+# Form Settings
+$objForm.Topmost = $True
+$objForm.Add_Shown({$objForm.Activate()})
+[void] $objForm.ShowDialog()
