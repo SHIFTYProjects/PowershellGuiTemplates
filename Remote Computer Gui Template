@@ -1,0 +1,438 @@
+
+# Name: Remote Gui Template
+# Description: Blank Remote Computer Gui Template with 2 Buttons
+# Author: Josh Hochstettler 
+# 
+#
+
+
+
+
+$ErrorActionPreference = 'SilentlyContinue'
+
+
+#######       FORM SETUP       #######
+
+Add-Type -AssemblyName System.Windows.Forms
+$wshell = New-Object -comObject Wscript.Shell
+[System.Windows.Forms.Application]::EnableVisualStyles()
+[System.Reflection.Assembly]::LoadWithPartialName('Microsoft.VisualBasic') | Out-Null
+
+#######       FORM SIZE       #######
+
+$Form = New-Object system.Windows.Forms.Form
+$Form.ClientSize = '950,300' #Width,Height
+$form.BackColor = ''
+$Form.text = "LEFT CLICK TOOLS"
+$Form.FormBorderStyle = 'Fixed3D'
+$Form.MaximizeBox = $false
+$Form.TopMost = $false
+
+
+# Create an output box
+$outputBox = New-Object System.Windows.Forms.TextBox
+$outputBox.Multiline = $true
+$outputBox.ScrollBars = "Vertical"
+$outputBox.Location = New-Object System.Drawing.Point(580, 10)
+$outputBox.Size = New-Object System.Drawing.Size(350, 240)
+$form.Controls.Add($outputBox)
+
+
+
+
+#Add a Background image to the form using Base64
+$base64ImageString = ""
+$imageBytes = [Convert]::FromBase64String($base64ImageString)
+$ms = New-Object IO.MemoryStream($imageBytes, 0, $imageBytes.Length)
+$ms.Write($imageBytes, 0, $imageBytes.Length);
+$objImage = [System.Drawing.Image]::FromStream($ms, $true)
+$Form.BackgroundImage = $objImage
+$Form.BackgroundImageLayout = "Stretch"
+# None, Tile, Center, Stretch, Zoom
+
+
+#Set icon for form using Base64 as an Embedded Image
+$base64IconString = ""
+$iconimageBytes = [Convert]::FromBase64String($base64IconString)
+$ims = New-Object IO.MemoryStream($iconimageBytes, 0, $iconimageBytes.Length)
+$ims.Write($iconimageBytes, 0, $iconimageBytes.Length);
+$alkIcon = [System.Drawing.Image]::FromStream($ims, $true)
+$Form.Icon = [System.Drawing.Icon]::FromHandle((new-object System.Drawing.Bitmap -argument $ims).GetHIcon())
+
+
+
+
+
+
+
+
+
+################## CONTROL FUNCTIONS########################################################
+
+# Activity Log (Saves to user's Desktop)
+$logLocation = [Environment]::GetFolderPath("Desktop") + "\Left Click Log.txt"
+function logAction ($action) {
+  $dateTime = Get-Date
+  Add-Content "$logLocation" "$dateTime | $action"
+}
+# Imports line items from a .txt document list.
+function importList {
+  logAction "Importing item list from text document."
+  $outputBox.AppendText("Importing item list from text document." + [Environment]::NewLine)
+  $initialDirectory = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::Desktop)
+  $OpenFileDialog = New-Object System.Windows.Forms.OpenFileDialog
+  $OpenFileDialog.initialDirectory = $initialDirectory
+  $OpenFileDialog.filter = "All files (*.*)| *.*"
+  $OpenFileDialog.ShowDialog() | Out-Null
+  $selectedFile = $OpenFileDialog.filename
+  $computerList = Get-Content $selectedFile
+  foreach ($computer in $computerList) {
+    $itemList.Items.Add($computer)
+    logAction "$computer was added to the item list. (Imported from file)"
+    $outputBox.AppendText("$computer was added to the item list. (Imported from file)" + [Environment]::NewLine)
+  }
+        
+}
+
+# Adds single user input item to item list.
+function addList {
+
+  $computerName = [Microsoft.VisualBasic.Interaction]::InputBox('Enter a Hostname/IP', 'Add Item')
+  $itemList.Items.Add($computerName)
+  logAction "$computerName was added to the item list. (Added manually)"
+  $outputBox.AppendText("$computerName was added to the item list. (Added manually)" + [Environment]::NewLine)
+}
+
+# Removes the currently selected item from the item list.
+function removeList {
+  $computerName = $itemList.SelectedItem
+  logAction "$computerName was removed from the item list."
+  $outputBox.AppendText("$computerName was removed from the item list." + [Environment]::NewLine)
+  $index = $itemList.SelectedIndex
+  $itemList.Items.RemoveAt($index)
+
+}
+# Clears all items from the list.
+function clearList {
+  logAction "All items cleared from list."
+  $outputBox.AppendText("All items cleared from list." + [Environment]::NewLine)
+  $itemList.Items.Clear()
+}
+function setFilePath {
+  $initialDirectory = [System.Environment]::GetFolderPath([System.Environment+SpecialFolder]::Desktop)
+  $OpenFileDialog = New-Object System.Windows.Forms.OpenFileDialog
+  $OpenFileDialog.initialDirectory = $initialDirectory
+  $OpenFileDialog.filter = "All files (*.*)| *.*"
+  $OpenFileDialog.ShowDialog() | Out-Null
+  $filePath = $OpenFileDialog.filename
+  $filePathBox.text = $filePath
+}
+
+#######       END OF CONTROL FUNCTIONS       #######
+####################################################
+
+
+
+
+#######       START OF BUTTON FUNCTIONS       #######
+
+
+# Activates the main function of the tool, targeting each item on the item list.
+function BLANK1 {
+  logAction "Tool Started."
+  $outputBox.AppendText("Tool Started." + [Environment]::NewLine)
+  $msgBoxInput = $wshell.Popup("Are you sure you want to proceed?", 0, "Confirm", 0x1)
+  switch ($msgBoxInput) {
+    '1' { 
+      logAction "User confirmed process execution."
+      $outputBox.AppendText("User confirmed process execution." + [Environment]::NewLine)
+              
+      # Counters for progress bar calculation 
+      $ctr = 0 
+      foreach ($item in $itemList.items) {$ctr++}
+      $x = 100 / $ctr 
+      $y = 0 
+
+      # Loop to perform action on each item in the list.    
+      foreach ($item in $itemList.items) {
+        $statusText.text = "Pinging $item"
+        try {
+          If (test-connection -count 1 -ComputerName $item -quiet) {
+            logAction "$item ONLINE"
+            $outputBox.AppendText("$item ONLINE" + [Environment]::NewLine)
+            $statusText.text = "$item ONLINE"
+
+                        
+            #INSERT SCRIPT TO PERFORM HERE
+
+            #INSERT SCRIPT TO PERFORM HERE
+            
+          }
+          Else {logAction "$item OFFLINE"
+            $outputBox.AppendText("$item OFFLINE" + [Environment]::NewLine)
+            $statusText.text = "Item Offline"
+          }
+
+        }
+        catch {
+          logAction "$item | $_.Exception.Message"
+          $outputBox.AppendText("$item | $_.Exception.Message" + [Environment]::NewLine)
+        }
+        $ProgressBar.Value = $y + $x
+        $y = $y + $x
+      }
+   
+      # Operation Completed finishing actions.
+            
+      logAction "Tool Attempted."
+      $outputBox.AppendText("Tool Attempted." + [Environment]::NewLine)
+      #Invoke-Item $logLocation
+      Start-Sleep -Seconds 1
+      $statusText.text = ""
+      $ProgressBar.Value = 0
+
+    }
+  }
+
+}
+
+
+#################################################################################
+
+
+
+# Activates the main function of the tool, targeting each item on the item list.
+function BLANK2 {
+  logAction "Tool Started."
+  $outputBox.AppendText("Tool Started." + [Environment]::NewLine)
+  $msgBoxInput = $wshell.Popup("Are you sure you want to continue?", 0, "Confirm", 0x1)
+  switch ($msgBoxInput) {
+    '1' { 
+      logAction "User confirmed process execution."
+      $outputBox.AppendText("Tool Started." + [Environment]::NewLine)
+              
+      # Counters for progress bar calculation 
+      $ctr = 0 
+      foreach ($item in $itemList.items) {$ctr++}
+      $x = 100 / $ctr 
+      $y = 0 
+
+      # Loop to perform action on each item in the list.    
+      foreach ($item in $itemList.items) {
+        $statusText.text = "$item"
+        $outputBox.AppendText("$item" + [Environment]::NewLine)
+        try {
+          If (test-connection -count 1 -ComputerName $item -quiet) {
+            logAction "$item ONLINE"
+            $outputBox.AppendText("$item ONLINE" + [Environment]::NewLine)
+
+
+            #INSERT SCRIPT TO PERFORM HERE
+            
+
+                          
+                         
+            #INSERT SCRIPT TO PERFORM HERE
+                        
+          }
+          Else {logAction "$item OFFLINE"
+            $outputBox.AppendText("Item Offline" + [Environment]::NewLine)
+          $statusText.text = "Item Offline"}
+
+        }
+        catch {
+          logAction "$item | $_.Exception.Message"
+          $outputBox.AppendText("$item | $_.Exception.Message" + [Environment]::NewLine)
+        }
+        $ProgressBar.Value = $y + $x
+        $y = $y + $x
+      }
+   
+      # Operation Completed finishing actions.
+      logAction "Repair Operation has completed."
+      $outputBox.AppendText("Operation has completed" + [Environment]::NewLine)
+      #Invoke-Item $logLocation
+      Start-Sleep -Seconds 1
+      $wshell.Popup("Finished Running.", 0, "Tool")
+      $statusText.text = ""
+      $ProgressBar.Value = 0
+
+    }
+    '2' {
+      logAction "User aborted the operation. (Confirmation declined)"
+      $outputBox.AppendText("User aborted the operation. (Confirmation declined.)" + [Environment]::NewLine)
+    }
+  }
+}
+
+
+
+#################################################################################
+
+
+
+
+
+
+
+
+
+
+
+#################################################################################
+
+function OPENLOG {
+  logAction "Opening Log."
+  $outputBox.AppendText("Opening Log." + [Environment]::NewLine)
+    
+  #INSERT SCRIPT TO PERFORM HERE
+
+
+  ii $logLocation
+
+}
+
+#################################################################################
+
+########################################################################################################################
+
+#############################################################################################################
+
+#############################################################################################################
+
+
+
+
+#######      END OF BUTTON FUNCTIONS       #######
+##################################################
+
+
+###################VERSION BUTTON######################
+function VER {
+  logAction "CURRENT VERSION BUTTON PRESSED - Program Created by ©Josh Hochstettler."
+  $msgBoxInput = $wshell.Popup("Left Click Tools© - Created by Josh Hochstettler", 0, "Confirm", 0)
+}
+#######################################################
+
+
+################## GUI Form BUTTONS ##################
+
+
+
+$itemList = New-Object system.Windows.Forms.ListBox
+$itemList.width = 380
+$itemList.height = 190
+$itemList.location = New-Object System.Drawing.Point(10, 10)
+$itemlist.Font = 'Microsoft Sans Serif,20'
+$Form.Controls.Add($itemList)
+
+$buttonAdd = New-Object system.Windows.Forms.Button
+$buttonAdd.Text = "Add.."
+$buttonAdd.Forecolor = "black"
+$buttonAdd.Backcolor = "lightgreen"     
+$buttonAdd.width = 75
+$buttonAdd.height = 24
+$buttonAdd.location = New-Object System.Drawing.Point(10, 200)
+$buttonAdd.Font = 'Microsoft Sans Serif,10'
+$buttonAdd.Add_Click( { addList })
+$Form.Controls.Add($buttonAdd)
+
+$buttonRemove = New-Object system.Windows.Forms.Button
+$buttonRemove.Text = "Remove" 
+$buttonRemove.Forecolor = "black"
+$buttonRemove.Backcolor = "tomato"    
+$buttonRemove.width = 95
+$buttonRemove.height = 24
+$buttonRemove.location = New-Object System.Drawing.Point(85, 200)
+$buttonRemove.Font = 'Microsoft Sans Serif,10'
+$buttonRemove.Add_Click( { removeList })
+$Form.Controls.Add($buttonRemove)
+
+$buttonClear = New-Object system.Windows.Forms.Button
+$buttonClear.Text = "Clear All"     
+$buttonClear.width = 110
+$buttonClear.height = 24
+$buttonClear.ForeColor = "black"    
+$buttonClear.BackColor = "tomato"
+$buttonClear.location = New-Object System.Drawing.Point(180, 200)
+$buttonClear.Font = 'Microsoft Sans Serif,10'
+$buttonClear.Add_Click( { clearList })
+$Form.Controls.Add($buttonClear)
+
+$buttonImport = New-Object system.Windows.Forms.Button
+$buttonImport.Text = "Import List" 
+$buttonImport.ForeColor = "black"    
+$buttonImport.BackColor = "lightgreen" 
+$buttonImport.width = 107
+$buttonImport.height = 24
+$buttonImport.location = New-Object System.Drawing.Point(290, 200)
+$buttonImport.Font = 'Microsoft Sans Serif,10'
+$buttonImport.Add_Click( { importList })
+$Form.Controls.Add($buttonImport)
+
+##For progress bar, do not edit.##
+$statusText = New-Object system.Windows.Forms.Label
+$statusText.text = ""
+$statusText.AutoSize = $true
+$statusText.width = 25
+$statusText.height = 10
+$statusText.ForeColor = "Red"
+$statusText.location = New-Object System.Drawing.Point(50, 250)
+$statusText.Font = 'Microsoft Sans Serif,10'
+$Form.Controls.Add($statusText)
+
+
+#######       END OF PROGRESS BAR FUNCTION       #######
+########################################################
+
+$BLANK1 = New-Object system.Windows.Forms.Button
+$BLANK1.Text = "BLANK1" 
+$BLANK1.ForeColor = "white"    
+$BLANK1.BackColor = "black"    
+$BLANK1.width = 115
+$BLANK1.height = 80
+$BLANK1.location = New-Object System.Drawing.Point(415, 10)
+$BLANK1.Font = 'Microsoft Sans Serif,10'
+$BLANK1.Add_Click( { BLANK1 })
+$Form.Controls.Add($BLANK1)
+
+$BLANK2 = New-Object system.Windows.Forms.Button
+$BLANK2.Text = "BLANK2"     
+$BLANK2.ForeColor = "white"
+$BLANK2.BackColor = "black"
+$BLANK2.width = 115
+$BLANK2.height = 80
+$BLANK2.location = New-Object System.Drawing.Point(415, 100)
+$BLANK2.Font = 'Microsoft Sans Serif,10'
+$BLANK2.Add_Click( { BLANK2 })
+$Form.Controls.Add($BLANK2)
+
+
+$OPENLOG = New-Object system.Windows.Forms.Button
+$OPENLOG.Text = "OPEN LOG"  
+$OPENLOG.ForeColor = "powderblue"
+$OPENLOG.Backcolor = "black"   
+$OPENLOG.width = 100
+$OPENLOG.height = 24     
+$OPENLOG.location = New-Object System.Drawing.Point(470, 260)
+$OPENLOG.Font = 'Microsoft Sans Serif,9'
+$OPENLOG.Add_Click( { OPENLOG })
+$Form.Controls.Add($OPENLOG)
+
+
+##Version Number Form Space
+$VER = New-Object system.Windows.Forms.Button
+$VER.Text = "v1.0"  
+$VER.ForeColor = "black"
+$VER.Backcolor = "whitesmoke"   
+$VER.width = 65
+$VER.height = 24
+#Horizontal, Vertical
+$VER.location = New-Object System.Drawing.Point(390, 260)
+$VER.Font = 'Microsoft Sans Serif,9'
+$VER.Add_Click( { VER })
+$Form.Controls.Add($VER)
+
+
+[void]$Form.ShowDialog()
+
